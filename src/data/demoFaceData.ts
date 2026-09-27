@@ -7,26 +7,18 @@ import {
 } from '../types.ts';
 
 // -------------------------------------------------------------
-// LOCAL BIOMETRIC DESCRIPTOR REPOSITORY
-// Strictly in-memory / session storage.
-// No raw face photos stored in localStorage.
+// SECURE LOCAL BIOMETRIC DESCRIPTOR REPOSITORY
+// Stores actual 128-D normalized face recognition embeddings
+// Associated strictly with authenticated officer user profiles.
 // -------------------------------------------------------------
 
 class DemoFaceDataStore {
-  // In-memory enrolled face templates (by userId)
   private templates: Map<string, StaffFaceTemplate> = new Map();
-
-  // Verification history
   private verifications: FaceVerificationRecord[] = [];
-
-  // Captured evidence items
   private evidenceItems: InspectionEvidence[] = [];
-
-  // Audit events
   private events: FaceVerificationEvent[] = [];
 
   constructor() {
-    this.initDefaultDemoTemplates();
     this.loadFromLocalStorage();
   }
 
@@ -44,7 +36,7 @@ class DemoFaceDataStore {
         this.verifications = [...parsedV, ...this.verifications];
       }
     } catch (e) {
-      console.warn('Could not read face biometrics from localStorage:', e);
+      console.warn('Could not read face biometrics from storage:', e);
     }
   }
 
@@ -55,154 +47,13 @@ class DemoFaceDataStore {
       localStorage.setItem('nawi_face_templates', JSON.stringify(tmplArr));
       localStorage.setItem('nawi_face_verifications', JSON.stringify(this.verifications.slice(0, 30)));
     } catch (e) {
-      console.warn('Could not save face biometrics to localStorage:', e);
+      console.warn('Could not save face biometrics to storage:', e);
     }
-  }
-
-  /**
-   * Seed pre-enrolled prototype templates for TESTER and INSPECTOR
-   * so reviewers can immediately test live verification or re-enroll.
-   */
-  public generateSeedEmbedding(seed: number): number[] {
-    const vec: number[] = [];
-    let sumSq = 0;
-    for (let i = 0; i < 64; i++) {
-      const val = Math.sin(seed * (i + 1) * 0.45) * 0.5 + Math.cos(seed + i * 0.25) * 0.5;
-      vec.push(val);
-      sumSq += val * val;
-    }
-    const norm = Math.sqrt(sumSq) || 1;
-    return vec.map((v) => Number((v / norm).toFixed(5)));
-  }
-
-  private initDefaultDemoTemplates() {
-    // 1. Field Tester: Amit Patel
-    const testerTemplate: StaffFaceTemplate = {
-      id: 'tmpl-tester-001',
-      user_id: 'usr-tester-001',
-      user_name: 'Amit Patel',
-      role: 'SUB_INSPECTOR',
-      embedding: this.generateSeedEmbedding(101),
-      enrolled_at: '2025-02-15T09:00:00Z',
-      demo_mode: true,
-      device_info: 'Metrology Field Tablet / Front Sensor',
-    };
-    this.templates.set('usr-tester-001', testerTemplate);
-    this.templates.set('usr-tester-alias', { ...testerTemplate, id: 'tmpl-tester-alias', user_id: 'usr-tester-alias' });
-    this.templates.set('usr-demo-tester', { ...testerTemplate, id: 'tmpl-demo-tester', user_id: 'usr-demo-tester' });
-
-    // 2. Lead Inspector: Dr. Sunita Rao
-    const inspectorTemplate: StaffFaceTemplate = {
-      id: 'tmpl-inspector-001',
-      user_id: 'usr-inspector-001',
-      user_name: 'Dr. Sunita Rao',
-      role: 'INSPECTOR',
-      embedding: this.generateSeedEmbedding(202),
-      enrolled_at: '2025-02-16T11:00:00Z',
-      demo_mode: true,
-      device_info: 'National Metrology Directorate Workstation',
-    };
-    this.templates.set('usr-inspector-001', inspectorTemplate);
-    this.templates.set('usr-demo-inspector', { ...inspectorTemplate, id: 'tmpl-demo-inspector', user_id: 'usr-demo-inspector' });
-
-    // 3. Admin: K. V. Ramanathan
-    const adminTemplate: StaffFaceTemplate = {
-      id: 'tmpl-admin-001',
-      user_id: 'usr-admin-001',
-      user_name: 'K. V. Ramanathan',
-      role: 'ADMIN',
-      embedding: this.generateSeedEmbedding(303),
-      enrolled_at: '2025-02-10T08:00:00Z',
-      demo_mode: true,
-      device_info: 'Directorate Central Server',
-    };
-    this.templates.set('usr-admin-001', adminTemplate);
-    this.templates.set('usr-demo-admin', { ...adminTemplate, id: 'tmpl-demo-admin', user_id: 'usr-demo-admin' });
-
-    // 4. Engineer: Vikram Sengupta
-    const engineerTemplate: StaffFaceTemplate = {
-      id: 'tmpl-engineer-001',
-      user_id: 'usr-engineer-001',
-      user_name: 'Vikram Sengupta',
-      role: 'ENGINEER',
-      embedding: this.generateSeedEmbedding(404),
-      enrolled_at: '2025-02-12T10:00:00Z',
-      demo_mode: true,
-      device_info: 'National Calibration & Standards Wing',
-    };
-    this.templates.set('usr-engineer-001', engineerTemplate);
-    this.templates.set('usr-demo-engineer', { ...engineerTemplate, id: 'tmpl-demo-engineer', user_id: 'usr-demo-engineer' });
-
-    // 5. Owner / Applicant: Rajesh Sharma
-    const ownerTemplate: StaffFaceTemplate = {
-      id: 'tmpl-owner-001',
-      user_id: 'usr-owner-001',
-      user_name: 'Rajesh Sharma',
-      role: 'APPLICANT',
-      embedding: this.generateSeedEmbedding(505),
-      enrolled_at: '2025-02-14T08:30:00Z',
-      demo_mode: true,
-      device_info: 'Authorized Applicant Terminal',
-    };
-    this.templates.set('usr-owner-001', ownerTemplate);
-    this.templates.set('usr-demo-owner', { ...ownerTemplate, id: 'tmpl-demo-owner', user_id: 'usr-demo-owner' });
-
-    // Initial Demo Evidence for DEMO-003 (Completed review)
-    this.evidenceItems.push(
-      {
-        id: 'ev-demo-003-1',
-        evidence_id: 'EVD-2025-003-01',
-        inspection_id: 'tp-demo-003',
-        captured_by: 'usr-inspector-001',
-        captured_by_name: 'Dr. Sunita Rao',
-        role: 'INSPECTOR',
-        captured_at: '2025-02-20T10:45:00Z',
-        evidence_type: 'NAMEPLATE_ID',
-        face_verification_id: 'fv-demo-003-seed',
-        camera_source: 'Inspector Device Camera',
-        latitude: 28.6305,
-        longitude: 77.2178,
-        notes: 'Instrument nameplate inspected. Model RC-210, Serial SN-RC-210-3312 confirmed.',
-      },
-      {
-        id: 'ev-demo-003-2',
-        evidence_id: 'EVD-2025-003-02',
-        inspection_id: 'tp-demo-003',
-        captured_by: 'usr-inspector-001',
-        captured_by_name: 'Dr. Sunita Rao',
-        role: 'INSPECTOR',
-        captured_at: '2025-02-20T11:15:00Z',
-        evidence_type: 'STANDARD_MASS_SET',
-        face_verification_id: 'fv-demo-003-seed',
-        camera_source: 'Inspector Device Camera',
-        latitude: 28.6305,
-        longitude: 77.2178,
-        notes: 'Working standard mass set STD-M1-2025-102 inspected with valid NPL certificate.',
-      }
-    );
   }
 
   // ---------------- TEMPLATES ----------------
   public getStaffTemplate(userId: string): StaffFaceTemplate | null {
     return this.templates.get(userId) || null;
-  }
-
-  public ensureStaffTemplate(user: { id: string; full_name?: string; role?: any }): StaffFaceTemplate {
-    const existing = this.getStaffTemplate(user.id);
-    if (existing) return existing;
-
-    const newTemplate: StaffFaceTemplate = {
-      id: `tmpl-${user.id}-${Date.now()}`,
-      user_id: user.id,
-      user_name: user.full_name || 'Legal Metrology Officer',
-      role: user.role || 'SUB_INSPECTOR',
-      embedding: this.generateSeedEmbedding(Math.abs(user.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 101))),
-      enrolled_at: new Date().toISOString(),
-      demo_mode: true,
-      device_info: 'Authorized Metrology Terminal (Demo Auto-Enrolled)',
-    };
-    this.saveStaffTemplate(newTemplate);
-    return newTemplate;
   }
 
   public getStaffTemplateByRole(role: RoleName): StaffFaceTemplate | null {
@@ -222,7 +73,7 @@ class DemoFaceDataStore {
       actor_name: template.user_name,
       role: template.role,
       action: 'ENROLLMENT_SUCCESS',
-      details: `Live face template enrolled for ${template.user_name} (${template.role}).`,
+      details: `Physical camera face template enrolled for ${template.user_name} (${template.role}).`,
     });
   }
 
@@ -246,8 +97,8 @@ class DemoFaceDataStore {
       inspection_id: record.inspection_id,
       action: record.verified ? 'VERIFICATION_SUCCESS' : 'VERIFICATION_FAILED',
       details: record.verified
-        ? `Live face identity verified for inspection ${record.inspection_id}.`
-        : `Live face identity verification rejected for inspection ${record.inspection_id}.`,
+        ? `Biometric identity match confirmed for inspection ${record.inspection_id} (${record.confidence_score}% similarity).`
+        : `Biometric identity verification rejected for inspection ${record.inspection_id} (${record.confidence_score !== undefined ? record.confidence_score + '%' : 'No face/mismatch'}).`,
     });
   }
 

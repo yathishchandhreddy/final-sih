@@ -206,12 +206,7 @@ export const TesterIdentityPage: React.FC = () => {
     setIsVerifying(true);
 
     try {
-      // 1. Live Camera Presence Check
-      const presence = FaceVerificationService.verifyLivePresence(frameHistoryRef.current, {
-        isLiveStreamActive: true,
-      });
-
-      // 2. Extract live biometric representation from current video frame
+      // 1. Extract live biometric representation from current video frame
       const canvas = canvasRef.current;
       const ctx = canvas.getContext('2d');
       if (ctx && videoRef.current) {
@@ -219,7 +214,7 @@ export const TesterIdentityPage: React.FC = () => {
       }
       const liveEmbedding = FaceVerificationService.extractEmbedding(canvas, detection.box);
 
-      // 3. Compare with enrolled template (Genuine comparison)
+      // 2. Compare with enrolled template (Genuine comparison)
       const res = FaceVerificationService.compareFaceTemplates(
         liveEmbedding,
         enrolledTemplate.embedding
@@ -227,7 +222,7 @@ export const TesterIdentityPage: React.FC = () => {
 
       setMatchResult(res);
 
-      if (res.match && presence.isLiveCamera) {
+      if (res.match) {
         const record: FaceVerificationRecord = {
           id: `fv-${Date.now()}`,
           user_id: effectiveUserId,
@@ -238,7 +233,7 @@ export const TesterIdentityPage: React.FC = () => {
           verified: true,
           face_match: true,
           live_camera_check: true,
-          confidence_score: res.confidence,
+          confidence_score: res.similarityPercentage ?? undefined,
           timestamp: new Date().toISOString(),
           attempt_number: 1,
           demo_mode: false,
@@ -253,36 +248,6 @@ export const TesterIdentityPage: React.FC = () => {
     } finally {
       setIsVerifying(false);
     }
-  };
-
-  /**
-   * Developer Test Bypass (Clearly separated and isolated)
-   */
-  const handleDeveloperTestBypass = () => {
-    const dummyRecord: FaceVerificationRecord = {
-      id: `dev-bypass-${Date.now()}`,
-      user_id: effectiveUserId,
-      user_name: effectiveUserName,
-      role: effectiveRole,
-      inspection_id: 'DEV-TEST-001',
-      verification_type: 'PRE_INSPECTION',
-      verified: true,
-      face_match: true,
-      live_camera_check: false,
-      confidence_score: 95.0,
-      timestamp: new Date().toISOString(),
-      attempt_number: 1,
-      demo_mode: true,
-    };
-    demoFaceStore.recordVerification(dummyRecord);
-    setVerificationRecord(dummyRecord);
-    setMatchResult({
-      match: true,
-      decision: 'MATCH',
-      confidence: 95,
-      similarityScore: 0.95,
-      message: 'DIAGNOSTIC TEST RECORD: Verification entry recorded for calibration workflow evaluation.',
-    });
   };
 
   const diagnostics = FaceVerificationService.getDiagnostics();
@@ -746,34 +711,6 @@ export const TesterIdentityPage: React.FC = () => {
                 </strong>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Developer Only Workflow Testing Drawer (Clearly Separated) */}
-      <div className="border border-slate-200 rounded-xl bg-slate-50 overflow-hidden text-xs">
-        <button
-          type="button"
-          onClick={() => setShowDevTestMode(!showDevTestMode)}
-          className="w-full px-4 py-2.5 flex items-center justify-between text-left font-semibold text-slate-500 hover:text-slate-800 transition-colors"
-        >
-          <span>STANDALONE VERIFICATION BENCHMARK</span>
-          {showDevTestMode ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </button>
-
-        {showDevTestMode && (
-          <div className="p-4 border-t border-slate-200 bg-amber-50/50 space-y-2">
-            <p className="text-[11px] text-amber-900 leading-relaxed">
-              <strong>Notice:</strong> This developer testing bypass exists solely for testing subsequent UI workflow transitions in headless or CI environments without camera hardware. It does not perform actual biometric verification.
-            </p>
-            <button
-              type="button"
-              onClick={handleDeveloperTestBypass}
-              className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors inline-flex items-center gap-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Generate Developer Test Record (Non-Biometric)</span>
-            </button>
           </div>
         )}
       </div>

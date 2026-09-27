@@ -4,7 +4,6 @@ import { demoFaceStore } from '../../data/demoFaceData.ts';
 import {
   FaceVerificationService,
   DetectionResult,
-  FaceBoundingBox,
   CameraState,
 } from '../../services/faceVerificationService.ts';
 import {
@@ -15,7 +14,7 @@ import {
   RefreshCw,
   UserCheck,
   ShieldCheck,
-  Zap,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface FaceEnrollmentModalProps {
@@ -52,6 +51,7 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
       setEnrollmentComplete(false);
       setCapturedPhotoUrl(null);
       setCameraError(null);
+      setDetection(null);
     }
   }, [isOpen]);
 
@@ -119,23 +119,24 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
         ctx.drawImage(video, 0, 0, vidW, vidH);
       }
 
-      // Run real face detector on the captured frame to get tight face bounding box
+      // 1. Strict live face detection verification
       const detRes = FaceVerificationService.detectFace(video, canvas);
-      const targetBox: FaceBoundingBox = detRes.box || {
-        x: Math.round(vidW * 0.28),
-        y: Math.round(vidH * 0.20),
-        width: Math.round(vidW * 0.44),
-        height: Math.round(vidH * 0.55),
-      };
+      if (!detRes.faceDetected || !detRes.box || detRes.faceCount !== 1) {
+        throw new Error(
+          detRes.faceCount > 1
+            ? 'Multiple faces detected. Only one person should be in front of the camera.'
+            : 'No clear face detected in the live frame. Please center your face and look at the camera.'
+        );
+      }
 
-      // 1. Extract real 64-dimensional biometric spatial embedding
-      const embedding = FaceVerificationService.extractEmbedding(canvas, targetBox);
+      // 2. Extract 128-dimensional biometric spatial embedding
+      const embedding = FaceVerificationService.extractEmbedding(canvas, detRes.box);
 
-      // 2. Capture real face crop photo (strictly face only)
-      const photoData = FaceVerificationService.captureFaceSnapshot(canvas, targetBox);
+      // 3. Capture cropped face portrait
+      const photoData = FaceVerificationService.captureFaceSnapshot(canvas, detRes.box);
       setCapturedPhotoUrl(photoData);
 
-      // 3. Save to biometric template store
+      // 4. Associate strictly with the authenticated officer
       const effectiveUser = user || {
         id: 'usr-tester-001',
         full_name: 'Amit Patel',
@@ -150,8 +151,8 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
         embedding,
         photo_data: photoData,
         enrolled_at: new Date().toISOString(),
-        demo_mode: true,
-        device_info: `${navigator.userAgent.slice(0, 35)}... (Real Webcam)`,
+        demo_mode: false,
+        device_info: `${navigator.userAgent.slice(0, 35)}... (Physical Camera)`,
       };
 
       demoFaceStore.saveStaffTemplate(staffTemplate);
@@ -170,6 +171,8 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
     }
   };
 
+  const isCaptureDisabled = !cameraActive || isProcessing || !detection?.faceDetected || detection.faceCount !== 1;
+
   if (!isOpen) return null;
 
   return (
@@ -184,30 +187,24 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                  Live Webcam Face Enrollment
+                  Officer Biometric Enrollment
                 </h2>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">
-                  METROLOGY ID
+                  LIVE WEBCAM
                 </span>
               </div>
               <p className="text-[11px] text-slate-500">
-                Register your real face for official OIML R 76-1:2006 field verification
+                Register biometric facial reference template for authorized inspection access
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold border border-emerald-200">
-              HARDWARE WEBCAM
-            </span>
-
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Modal Body */}
@@ -215,12 +212,12 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
           {/* Target User Info */}
           <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
             <div>
-              <span className="text-[10px] text-slate-400 uppercase font-semibold">Enrolling Staff</span>
+              <span className="text-[10px] text-slate-400 uppercase font-semibold">Enrolling Officer</span>
               <div className="font-bold text-slate-900 text-sm">{user?.full_name || 'Legal Metrology Officer'}</div>
-              <div className="text-slate-500 text-[11px]">{user?.organization || 'Legal Metrology Directorate'}</div>
+              <div className="text-slate-500 text-[11px]">Officer ID: <span className="font-mono">{user?.id || 'usr-tester-001'}</span></div>
             </div>
             <div className="text-right">
-              <span className="text-[10px] text-slate-400 uppercase font-semibold">Official Role</span>
+              <span className="text-[10px] text-slate-400 uppercase font-semibold">Role Scope</span>
               <div>
                 <span className="inline-block mt-0.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-100 text-blue-900 border border-blue-300">
                   {user?.role || 'SUB_INSPECTOR'}
@@ -229,7 +226,7 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
             </div>
           </div>
 
-          {/* Camera Viewport or Success State */}
+          {/* Camera Viewport */}
           {!enrollmentComplete ? (
             <div className="relative rounded-2xl overflow-hidden bg-slate-950 aspect-4/3 flex items-center justify-center border-2 border-slate-800 shadow-inner">
               <canvas ref={canvasRef} className="hidden" />
@@ -251,9 +248,9 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
                         <Camera className="w-8 h-8" />
                       </div>
                       <div>
-                        <h4 className="text-base font-bold text-white">Live Camera Enrollment</h4>
+                        <h4 className="text-base font-bold text-white">Physical Webcam Required</h4>
                         <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-                          Click below to start your physical webcam, position your face within the guide, and capture your biometric profile.
+                          Click below to start your webcam. Exactly one face must be visible in the frame to register a template.
                         </p>
                       </div>
                       <div className="pt-2">
@@ -263,7 +260,7 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
                           className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all shadow-lg inline-flex items-center gap-2 cursor-pointer active:scale-95"
                         >
                           <Camera className="w-4 h-4" />
-                          <span>START WEBCAM</span>
+                          <span>START PHYSICAL CAMERA</span>
                         </button>
                       </div>
                     </div>
@@ -272,9 +269,9 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
                   {cameraState === 'REQUESTING' && (
                     <div className="space-y-3">
                       <RefreshCw className="w-8 h-8 animate-spin mx-auto text-blue-400" />
-                      <p className="text-xs font-medium text-white">Requesting webcam access...</p>
+                      <p className="text-xs font-medium text-white">Requesting camera permission...</p>
                       <p className="text-[11px] text-slate-400 font-mono">
-                        Please click &quot;Allow&quot; in your browser camera prompt.
+                        Please click &quot;Allow&quot; in your browser address bar.
                       </p>
                     </div>
                   )}
@@ -284,7 +281,7 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
                       <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
                       <p className="text-xs text-rose-300 font-semibold">{cameraError}</p>
                       <p className="text-[11px] text-slate-300 mt-1">
-                        Please grant camera access in your browser settings and try again.
+                        Camera permission is required for biometric identity registration.
                       </p>
 
                       <div className="pt-2">
@@ -293,7 +290,7 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
                           onClick={handleStartCamera}
                           className="px-4 py-2 rounded-xl bg-slate-800 text-slate-200 border border-slate-700 text-xs font-semibold hover:bg-slate-700 transition-all"
                         >
-                          Retry Webcam
+                          Retry Camera Access
                         </button>
                       </div>
                     </div>
@@ -306,22 +303,24 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
                 <>
                   <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/80 text-white text-[10px] font-mono border border-slate-700 backdrop-blur-xs">
                     <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                    <span>LIVE WEBCAM STREAM</span>
+                    <span>LIVE WEBCAM ACTIVE</span>
                   </div>
 
                   {/* Oval Face Guide */}
                   <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
                     <div
                       className={`w-52 h-64 rounded-[50%] border-2 transition-all duration-300 shadow-2xl ${
-                        detection?.faceDetected
+                        detection?.faceDetected && detection.faceCount === 1
                           ? 'border-emerald-400 bg-emerald-500/10 shadow-emerald-500/20'
+                          : detection?.faceCount && detection.faceCount > 1
+                          ? 'border-rose-400 bg-rose-500/10'
                           : 'border-white/50 border-dashed'
                       }`}
                     />
                   </div>
 
                   {/* Face Tracking Bounding Box */}
-                  {detection?.box && detection.faceDetected && (
+                  {detection?.box && detection.faceDetected && detection.faceCount === 1 && (
                     <div
                       className="absolute border-2 border-emerald-400 bg-emerald-400/10 rounded-2xl pointer-events-none transition-all duration-75 shadow-sm"
                       style={{
@@ -338,30 +337,30 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
                     </div>
                   )}
 
-                  {/* Status Bar */}
+                  {/* Real-time Status Bar */}
                   <div className="absolute bottom-3 inset-x-3 px-3 py-2 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-700/80 text-white text-xs flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {detection?.faceDetected ? (
+                      {detection?.faceDetected && detection.faceCount === 1 ? (
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      ) : detection?.faceCount && detection.faceCount > 1 ? (
+                        <span className="w-2 h-2 rounded-full bg-rose-500" />
                       ) : (
                         <span className="w-2 h-2 rounded-full bg-amber-400" />
                       )}
                       <span className="font-semibold text-[11px]">
-                        {detection?.faceDetected
-                          ? 'Real face detected — Ready to capture!'
-                          : (detection?.statusMessage || 'Position yourself in front of the camera')}
+                        {detection?.statusMessage || 'Position your face in front of the camera.'}
                       </span>
                     </div>
 
-                    <span className="text-[10px] font-mono text-emerald-400 font-bold">
-                      {detection?.faceDetected ? 'READY' : 'POSITIONING'}
+                    <span className="text-[10px] font-mono font-bold text-emerald-400">
+                      {detection?.faceDetected && detection.faceCount === 1 ? 'READY TO CAPTURE' : 'NO FACE'}
                     </span>
                   </div>
                 </>
               )}
             </div>
           ) : (
-            /* Enrollment Success View with Real Captured Photo */
+            /* Enrollment Success View */
             <div className="p-6 rounded-2xl bg-emerald-50/90 border-2 border-emerald-400 text-center space-y-4">
               <div className="flex items-center justify-center gap-4">
                 {capturedPhotoUrl ? (
@@ -379,31 +378,31 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
                 )}
                 <div className="text-left">
                   <h3 className="text-base font-bold text-emerald-950">
-                    Real Face Biometric Enrolled!
+                    Biometric Reference Registered
                   </h3>
                   <p className="text-xs text-emerald-800 mt-0.5">
-                    Biometric template and photo profile saved for{' '}
+                    128-D spatial embedding template generated and associated with{' '}
                     <strong>{user?.full_name || 'Legal Metrology Officer'}</strong>.
                   </p>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 mt-2 rounded-md bg-emerald-200/80 text-emerald-900 text-[11px] font-mono font-semibold">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-                    <span>64-Dimensional Vector Saved</span>
+                    <span>Reference Template Ready for Live Match</span>
                   </div>
                 </div>
               </div>
 
               <div className="p-3.5 bg-white rounded-xl border border-emerald-200 text-left text-xs font-mono space-y-1.5 max-w-md mx-auto">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Source:</span>
-                  <span className="font-bold text-slate-800">Hardware Optical Webcam</span>
+                  <span className="text-slate-500">Vector Dimension:</span>
+                  <span className="font-bold text-slate-800">128-D LBP/HOG Unit Embedding</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Enrolled At:</span>
+                  <span className="text-slate-500">Matching Method:</span>
+                  <span className="font-bold text-slate-800">Cosine Similarity (Threshold &gt;= 85%)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Registered At:</span>
                   <span className="text-slate-700">{new Date().toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Security Standard:</span>
-                  <span className="font-bold text-emerald-700">OIML R 76-1:2006 Field Security</span>
                 </div>
               </div>
             </div>
@@ -413,7 +412,7 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
           <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 text-[11px] text-slate-600 leading-relaxed flex items-start gap-2">
             <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
             <div>
-              <strong>Authorized Identity Security:</strong> Real face biometrics authenticate official Legal Metrology personnel during type evaluation and inspection verification.
+              <strong>Biometric Security Standard:</strong> Biometric embeddings are mathematical unit vectors strictly used for real-time comparison during inspection verification.
             </div>
           </div>
         </div>
@@ -429,17 +428,15 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
           </button>
 
           {!enrollmentComplete ? (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                disabled={!cameraActive || isProcessing}
-                onClick={handleCaptureAndEnroll}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
-              >
-                <Camera className="w-4 h-4" />
-                <span>{isProcessing ? 'Processing Face Features...' : 'Capture & Save Real Face'}</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              disabled={isCaptureDisabled}
+              onClick={handleCaptureAndEnroll}
+              className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer active:scale-95"
+            >
+              <Camera className="w-4 h-4" />
+              <span>{isProcessing ? 'Extracting 128-D Vector...' : 'Capture & Save Biometric Reference'}</span>
+            </button>
           ) : (
             <button
               type="button"
@@ -447,7 +444,7 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
               className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-all shadow-xs flex items-center gap-2"
             >
               <CheckCircle2 className="w-4 h-4" />
-              <span>Done & Ready for Inspections</span>
+              <span>Ready for Verification</span>
             </button>
           )}
         </div>

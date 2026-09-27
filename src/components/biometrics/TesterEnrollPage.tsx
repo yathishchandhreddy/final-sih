@@ -174,25 +174,27 @@ export const TesterEnrollPage: React.FC = () => {
       }
 
       const targetBox: FaceBoundingBox = detection?.box || {
-        x: Math.round(vidW * 0.2),
-        y: Math.round(vidH * 0.15),
-        width: Math.round(vidW * 0.6),
-        height: Math.round(vidH * 0.7),
+        x: Math.round(vidW * 0.28),
+        y: Math.round(vidH * 0.20),
+        width: Math.round(vidW * 0.44),
+        height: Math.round(vidH * 0.55),
       };
 
-      // Extract 64-dimensional biometric spatial embedding vector
+      // Extract 128-dimensional biometric spatial embedding vector
       const embedding = FaceVerificationService.extractEmbedding(canvas, targetBox);
+      const photoData = FaceVerificationService.captureFaceSnapshot(canvas, targetBox);
 
-      // Save to demo biometric store (local development storage, no raw photo stored)
+      // Save to biometric store
       const template: StaffFaceTemplate = {
         id: `tmpl-${effectiveUserId}-${Date.now()}`,
         user_id: effectiveUserId,
         user_name: effectiveUserName,
         role: effectiveRole,
         embedding,
+        photo_data: photoData,
         enrolled_at: new Date().toISOString(),
-        demo_mode: true,
-        device_info: `${navigator.userAgent.slice(0, 45)}... (Live Camera)`,
+        demo_mode: false,
+        device_info: `${navigator.userAgent.slice(0, 45)}... (Physical Camera)`,
       };
 
       demoFaceStore.saveStaffTemplate(template);

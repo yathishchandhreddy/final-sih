@@ -922,35 +922,6 @@ export const TestPlanWorkspace: React.FC<TestPlanWorkspaceProps> = ({
                   <Camera className="w-4 h-4" />
                   <span>{verificationRecord ? 'Re-verify Live Face' : 'Launch Live Face Verification'}</span>
                 </button>
-                {!verificationRecord && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const effectiveUser = user || {
-                        id: 'usr-tester-001',
-                        full_name: 'Amit Patel',
-                        role: 'SUB_INSPECTOR' as const,
-                      };
-                      demoFaceStore.ensureStaffTemplate(effectiveUser);
-                      const rec = FaceVerificationService.createDemoVerificationRecord({
-                        userId: effectiveUser.id,
-                        userName: effectiveUser.full_name || 'Legal Metrology Officer',
-                        role: effectiveUser.role || 'SUB_INSPECTOR',
-                        inspectionId: testPlan.id,
-                        instrumentCode: testPlan.instrument_code,
-                        confidenceScore: 97.4,
-                        source: 'DEMO_BYPASS',
-                      });
-                      demoFaceStore.recordVerification(rec);
-                      await handleFaceVerificationSuccess(rec);
-                    }}
-                    className="py-2 px-3 text-xs font-semibold rounded-lg bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors flex items-center justify-center gap-1"
-                    title="Instantly verify officer identity in demo mode without camera"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Quick Verify (Demo)</span>
-                  </button>
-                )}
                 <button
                   type="button"
                   onClick={() => setIsEnrollModalOpen(true)}
