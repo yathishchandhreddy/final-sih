@@ -1,0 +1,6 @@
+{
+  "name": "NAWI-Report",
+  "description": "Digital platform for Non-Automatic Weighing Instrument (NAWI) type evaluation and test report management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
