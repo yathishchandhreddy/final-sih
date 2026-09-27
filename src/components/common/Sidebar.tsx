@@ -35,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
           { path: '/owner/instruments', label: 'My Instruments', icon: Cpu },
           { path: '/owner/applications', label: 'Applications Tracking', icon: FileCheck2 },
           { path: '/admin/certificates', label: 'Issued Certificates', icon: FileText },
+          { path: '/staff/identity', label: 'Biometric Face ID', icon: ShieldCheck },
         ];
       case 'TESTER':
       case 'SUB_INSPECTOR':
@@ -49,6 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
           { path: '/engineer/dashboard', label: 'Calibration Dashboard', icon: LayoutDashboard },
           { path: '/engineer/calibration', label: 'Standards Queue', icon: Cpu },
           { path: '/engineer/review', label: 'Technical Review', icon: FileCheck2 },
+          { path: '/staff/identity', label: 'Biometric Face ID', icon: ShieldCheck },
         ];
       case 'INSPECTOR':
         return [
@@ -65,6 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
           { path: '/admin/applications', label: 'Application Queue', icon: FileCheck2 },
           { path: '/admin/instruments', label: 'Instruments Registry', icon: Cpu },
           { path: '/admin/certificates', label: 'Certificates & Seals', icon: FileText },
+          { path: '/staff/identity', label: 'Biometric Identity Registry', icon: ShieldCheck },
           { path: '/admin/users', label: 'Personnel & Users', icon: Users },
           { path: '/admin/audit', label: 'Audit Trail', icon: ShieldCheck },
         ];
@@ -185,6 +188,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
                 <QrCode className="w-4 h-4 text-slate-400" />
                 <span>QR Verification</span>
               </button>
+
+              <button
+                onClick={() => handleNavClick('/staff/identity')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                  path.includes('/identity')
+                    ? 'bg-blue-600 text-white font-semibold'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <span>Face Identity Verification</span>
+              </button>
             </div>
           </div>
 
@@ -221,15 +236,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onCloseMob
           </div>
 
           {/* Quick Live Face Verification Button */}
-          {(role === 'SUB_INSPECTOR' || role === 'TESTER' || role === 'INSPECTOR' || role === 'ADMIN') && (
-            <button
-              onClick={() => handleNavClick(role === 'INSPECTOR' ? '/inspector/identity' : '/tester/identity')}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/50 hover:text-emerald-200 text-[11px] font-medium transition-all"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Face Identity & Verification</span>
-            </button>
-          )}
+          <button
+            onClick={() => handleNavClick('/staff/identity')}
+            className="w-full flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-900/50 hover:text-emerald-200 text-[11px] font-medium transition-all"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Face Identity & Biometrics</span>
+          </button>
 
           {/* Sign Out Button */}
           <button

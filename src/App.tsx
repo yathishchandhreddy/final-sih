@@ -228,13 +228,16 @@ const MainRouter: React.FC = () => {
 
     // Live Staff Face Identity Verification
     if (
+      path === '/identity' ||
+      path === '/staff/identity' ||
       path === '/tester/identity' ||
       path === '/tester/identity/enroll' ||
       path === '/inspector/identity' ||
-      path === '/staff/identity'
+      path === '/admin/identity' ||
+      path === '/owner/identity'
     ) {
       return (
-        <RoleGuard allowedRoles={['SUB_INSPECTOR', 'INSPECTOR', 'ADMIN', 'ENGINEER']}>
+        <RoleGuard allowedRoles={['SUB_INSPECTOR', 'INSPECTOR', 'ADMIN', 'ENGINEER', 'APPLICANT', 'APPROVING_AUTHORITY', 'READ_ONLY']}>
           <StaffIdentityPage initialOpenEnroll={path === '/tester/identity/enroll'} />
         </RoleGuard>
       );

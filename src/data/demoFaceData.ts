@@ -46,7 +46,7 @@ class DemoFaceDataStore {
   }
 
   private initDefaultDemoTemplates() {
-    // 1. Field Tester: Amit Patel (usr-tester-001)
+    // 1. Field Tester: Amit Patel
     const testerTemplate: StaffFaceTemplate = {
       id: 'tmpl-tester-001',
       user_id: 'usr-tester-001',
@@ -58,13 +58,10 @@ class DemoFaceDataStore {
       device_info: 'Metrology Field Tablet / Front Sensor',
     };
     this.templates.set('usr-tester-001', testerTemplate);
-    this.templates.set('usr-tester-alias', {
-      ...testerTemplate,
-      id: 'tmpl-tester-alias',
-      user_id: 'usr-tester-alias',
-    });
+    this.templates.set('usr-tester-alias', { ...testerTemplate, id: 'tmpl-tester-alias', user_id: 'usr-tester-alias' });
+    this.templates.set('usr-demo-tester', { ...testerTemplate, id: 'tmpl-demo-tester', user_id: 'usr-demo-tester' });
 
-    // 2. Lead Inspector: Dr. Sunita Rao (usr-inspector-001)
+    // 2. Lead Inspector: Dr. Sunita Rao
     const inspectorTemplate: StaffFaceTemplate = {
       id: 'tmpl-inspector-001',
       user_id: 'usr-inspector-001',
@@ -76,12 +73,13 @@ class DemoFaceDataStore {
       device_info: 'National Metrology Directorate Workstation',
     };
     this.templates.set('usr-inspector-001', inspectorTemplate);
+    this.templates.set('usr-demo-inspector', { ...inspectorTemplate, id: 'tmpl-demo-inspector', user_id: 'usr-demo-inspector' });
 
-    // 3. Admin / Controller
+    // 3. Admin: K. V. Ramanathan
     const adminTemplate: StaffFaceTemplate = {
       id: 'tmpl-admin-001',
       user_id: 'usr-admin-001',
-      user_name: 'Rajesh Varma',
+      user_name: 'K. V. Ramanathan',
       role: 'ADMIN',
       embedding: this.generateSeedEmbedding(303),
       enrolled_at: '2025-02-10T08:00:00Z',
@@ -89,6 +87,35 @@ class DemoFaceDataStore {
       device_info: 'Directorate Central Server',
     };
     this.templates.set('usr-admin-001', adminTemplate);
+    this.templates.set('usr-demo-admin', { ...adminTemplate, id: 'tmpl-demo-admin', user_id: 'usr-demo-admin' });
+
+    // 4. Engineer: Vikram Sengupta
+    const engineerTemplate: StaffFaceTemplate = {
+      id: 'tmpl-engineer-001',
+      user_id: 'usr-engineer-001',
+      user_name: 'Vikram Sengupta',
+      role: 'ENGINEER',
+      embedding: this.generateSeedEmbedding(404),
+      enrolled_at: '2025-02-12T10:00:00Z',
+      demo_mode: true,
+      device_info: 'National Calibration & Standards Wing',
+    };
+    this.templates.set('usr-engineer-001', engineerTemplate);
+    this.templates.set('usr-demo-engineer', { ...engineerTemplate, id: 'tmpl-demo-engineer', user_id: 'usr-demo-engineer' });
+
+    // 5. Owner / Applicant: Rajesh Sharma
+    const ownerTemplate: StaffFaceTemplate = {
+      id: 'tmpl-owner-001',
+      user_id: 'usr-owner-001',
+      user_name: 'Rajesh Sharma',
+      role: 'APPLICANT',
+      embedding: this.generateSeedEmbedding(505),
+      enrolled_at: '2025-02-14T08:30:00Z',
+      demo_mode: true,
+      device_info: 'Authorized Applicant Terminal',
+    };
+    this.templates.set('usr-owner-001', ownerTemplate);
+    this.templates.set('usr-demo-owner', { ...ownerTemplate, id: 'tmpl-demo-owner', user_id: 'usr-demo-owner' });
 
     // Initial Demo Evidence for DEMO-003 (Completed review)
     this.evidenceItems.push(
