@@ -46,7 +46,7 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
 });
 
 // Health check
-app.get('/api/health', (req: Request, res: Response) => {
+app.get(['/api/health', '/health'], (req: Request, res: Response) => {
   res.json({
     status: 'ok',
     service: 'NAWI-Report Metrology Type Evaluation Platform',
@@ -55,14 +55,29 @@ app.get('/api/health', (req: Request, res: Response) => {
   });
 });
 
-// Mount API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/instruments', instrumentsRoutes);
-app.use('/api/rules', rulesRoutes);
-app.use('/api/test-plans', testPlansRoutes);
-app.use('/api/reports', reportsRoutes);
-app.use('/api/audit', auditRoutes);
-app.use('/api/audit-logs', auditRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+// Mount API routes (supports both /api/* and direct /* prefixes for Vercel serverless rewrites)
+const routeModules = [
+  { path: 'auth', handler: authRoutes },
+  { path: 'instruments', handler: instrumentsRoutes },
+  { path: 'rules', handler: rulesRoutes },
+  { path: 'test-plans', handler: testPlansRoutes },
+  { path: 'reports', handler: reportsRoutes },
+  { path: 'audit', handler: auditRoutes },
+  { path: 'audit-logs', handler: auditRoutes },
+  { path: 'dashboard', handler: dashboardRoutes },
+];
+
+for (const { path: p, handler } of routeModules) {
+  app.use(`/api/${p}`, handler);
+  app.use(`/${p}`, handler);
+}
+
+// Global error handler guaranteeing JSON responses
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('[API Server Error]:', err);
+  res.status(500).json({
+    error: err?.message || 'Metrology service encountered an internal error.',
+  });
+});
 
 export default app;
