@@ -4,7 +4,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 let dbInstance: Database | null = null;
-const DATA_DIR = path.join(process.cwd(), 'data');
+const DATA_DIR = process.env.VERCEL ? '/tmp/data' : path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'nawi_report.sqlite');
 
 export async function getDb(): Promise<Database> {
@@ -12,16 +12,24 @@ export async function getDb(): Promise<Database> {
     return dbInstance;
   }
 
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+  } catch (err) {
+    console.warn('[DB] Notice: DATA_DIR creation deferred or in memory:', err);
   }
 
   const SQL = await initSqlJs();
 
-  if (fs.existsSync(DB_FILE)) {
-    const fileBuffer = fs.readFileSync(DB_FILE);
-    dbInstance = new SQL.Database(fileBuffer);
-  } else {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const fileBuffer = fs.readFileSync(DB_FILE);
+      dbInstance = new SQL.Database(fileBuffer);
+    } else {
+      dbInstance = new SQL.Database();
+    }
+  } catch (err) {
     dbInstance = new SQL.Database();
   }
 
@@ -35,9 +43,14 @@ export async function getDb(): Promise<Database> {
 
 export function saveDb(): void {
   if (!dbInstance) return;
-  const data = dbInstance.export();
-  const buffer = Buffer.from(data);
-  fs.writeFileSync(DB_FILE, buffer);
+  try {
+    const data = dbInstance.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(DB_FILE, buffer);
+  } catch (err) {
+    // Non-fatal in read-only / serverless edge environments
+    console.warn('[DB] Persistence note:', err);
+  }
 }
 
 function initSchema(db: Database): void {

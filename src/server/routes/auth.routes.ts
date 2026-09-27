@@ -21,31 +21,63 @@ const DEMO_PRESENTATION_PASSWORD = process.env.DEMO_ACCOUNTS_PASSWORD || 'NawiDe
 // Controlled Demo Login (Authenticates via real Supabase Auth on server side)
 router.post('/demo-login', async (req, res) => {
   if (!isSupabaseServerConfigured) {
-    return res.status(503).json({ error: 'Demonstration account unavailable. Please contact the administrator.' });
+    console.error('[API] /auth/demo-login error: Supabase is not configured on the server. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY.');
+    return res.status(503).json({
+      error: 'Supabase server credentials are not configured in environment variables. Please set SUPABASE_URL and SUPABASE_ANON_KEY (or SUPABASE_SERVICE_ROLE_KEY).',
+    });
   }
 
   try {
     const { role } = req.body;
     if (!role || typeof role !== 'string') {
-      return res.status(400).json({ error: 'Demonstration account unavailable. Please contact the administrator.' });
+      return res.status(400).json({ error: 'Valid demo role is required.' });
     }
 
     const canonicalRole = role.trim().toUpperCase() as DemoRole;
     const demoEmail = DEMO_ACCOUNTS_MAP[canonicalRole];
 
     if (!demoEmail) {
-      return res.status(400).json({ error: 'Demonstration account unavailable. Please contact the administrator.' });
+      return res.status(400).json({ error: 'Demonstration account for requested role is not available.' });
     }
 
     // Authenticate through Supabase Auth using the server-side presentation credentials
-    const { data, error } = await supabaseServer.auth.signInWithPassword({
+    let authResult = await supabaseServer.auth.signInWithPassword({
       email: demoEmail,
       password: DEMO_PRESENTATION_PASSWORD,
     });
 
-    if (error || !data.session || !data.user) {
+    // Auto-provision demo account if missing and service role key is available
+    if (authResult.error && supabaseServer.auth?.admin) {
+      try {
+        console.log(`[API] Attempting auto-provision for demo user: ${demoEmail}`);
+        await supabaseServer.auth.admin.createUser({
+          email: demoEmail,
+          password: DEMO_PRESENTATION_PASSWORD,
+          email_confirm: true,
+          user_metadata: {
+            full_name: `${canonicalRole.charAt(0) + canonicalRole.slice(1).toLowerCase()} Demo`,
+            role: canonicalRole,
+          },
+        });
+        // Retry authentication
+        authResult = await supabaseServer.auth.signInWithPassword({
+          email: demoEmail,
+          password: DEMO_PRESENTATION_PASSWORD,
+        });
+      } catch (provisionErr: any) {
+        console.warn('[API] Auto-provision note:', provisionErr?.message);
+      }
+    }
+
+    const { data, error } = authResult;
+
+    if (error || !data?.session || !data?.user) {
       console.error('[API] /auth/demo-login failed for role:', canonicalRole, error?.message);
-      return res.status(401).json({ error: 'Demonstration account unavailable. Please contact the administrator.' });
+      return res.status(401).json({
+        error: error?.message?.includes('Invalid login')
+          ? 'Demonstration account not yet initialized in Supabase Auth. Please ensure demo accounts are created or provide SUPABASE_SERVICE_ROLE_KEY.'
+          : (error?.message || 'Unable to sign in to this demonstration account.'),
+      });
     }
 
     await logAudit({
@@ -84,7 +116,7 @@ router.post('/demo-login', async (req, res) => {
     });
   } catch (err: any) {
     console.error('[API] /auth/demo-login error:', err.message);
-    res.status(500).json({ error: 'Demonstration account unavailable. Please contact the administrator.' });
+    res.status(500).json({ error: err.message || 'Unable to sign in to this demonstration account.' });
   }
 });
 

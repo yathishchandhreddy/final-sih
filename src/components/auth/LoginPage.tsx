@@ -93,7 +93,7 @@ export const LoginPage: React.FC = () => {
     const roleKey = role.toLowerCase();
     const configuredEmail = DEMO_ACCOUNTS[roleKey];
     if (!configuredEmail) {
-      setErrorMessage('Demonstration account unavailable. Please contact the administrator.');
+      setErrorMessage('Demonstration account is not configured.');
       return;
     }
 
@@ -104,8 +104,11 @@ export const LoginPage: React.FC = () => {
       const user = await demoLogin(role);
       const targetDashboard = getRoleDashboardPath(user.role);
       navigate(targetDashboard);
-    } catch {
-      setErrorMessage('Demonstration account unavailable. Please contact the administrator.');
+    } catch (err: any) {
+      console.error('[Demo Login Error]:', err);
+      setErrorMessage(
+        err?.message || 'Unable to sign in to this demonstration account.'
+      );
     } finally {
       setDemoLoadingRole(null);
     }

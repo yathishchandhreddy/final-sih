@@ -221,12 +221,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const demoLogin = async (role: 'ADMIN' | 'INSPECTOR' | 'TESTER' | 'ENGINEER' | 'OWNER'): Promise<User> => {
     if (!isSupabaseConfigured) {
-      throw new Error('Demonstration account unavailable. Please contact the administrator.');
+      throw new Error(
+        'Supabase is not configured. Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your Vercel deployment environment variables.'
+      );
     }
 
     const res = await api.demoLogin(role);
     if (!res?.session?.access_token || !res?.session?.refresh_token) {
-      throw new Error('Demonstration account unavailable. Please contact the administrator.');
+      throw new Error('Demonstration session credentials were not returned by the server.');
     }
 
     const { data, error } = await supabase.auth.setSession({
@@ -235,12 +237,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (error || !data.session || !data.user) {
-      throw new Error('Demonstration account unavailable. Please contact the administrator.');
+      throw new Error(error?.message || 'Unable to establish Supabase Auth session for demonstration user.');
     }
 
     const resolved = await syncSupabaseUser(data.session.access_token, data.user);
     if (!resolved) {
-      throw new Error('Demonstration account unavailable. Please contact the administrator.');
+      throw new Error('Demonstration account profile could not be loaded.');
     }
     return resolved;
   };
