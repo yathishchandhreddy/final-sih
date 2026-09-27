@@ -119,17 +119,19 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
         ctx.drawImage(video, 0, 0, vidW, vidH);
       }
 
-      const targetBox: FaceBoundingBox = detection?.box || {
-        x: Math.round(vidW * 0.2),
-        y: Math.round(vidH * 0.15),
-        width: Math.round(vidW * 0.6),
-        height: Math.round(vidH * 0.7),
+      // Run real face detector on the captured frame to get tight face bounding box
+      const detRes = FaceVerificationService.detectFace(video, canvas);
+      const targetBox: FaceBoundingBox = detRes.box || {
+        x: Math.round(vidW * 0.28),
+        y: Math.round(vidH * 0.20),
+        width: Math.round(vidW * 0.44),
+        height: Math.round(vidH * 0.55),
       };
 
       // 1. Extract real 64-dimensional biometric spatial embedding
       const embedding = FaceVerificationService.extractEmbedding(canvas, targetBox);
 
-      // 2. Capture real face crop photo
+      // 2. Capture real face crop photo (strictly face only)
       const photoData = FaceVerificationService.captureFaceSnapshot(canvas, targetBox);
       setCapturedPhotoUrl(photoData);
 
