@@ -412,7 +412,7 @@ export const FaceEnrollmentModal: React.FC<FaceEnrollmentModalProps> = ({
           <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 text-[11px] text-slate-600 leading-relaxed flex items-start gap-2">
             <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
             <div>
-              <strong>Biometric Security Standard:</strong> Biometric embeddings are mathematical unit vectors strictly used for real-time comparison during inspection verification.
+              <strong>Officer Identity Enrollment:</strong> Biometric embeddings are mathematical unit vectors stored locally and used for real-time identity comparison during inspection verification.
             </div>
           </div>
         </div>

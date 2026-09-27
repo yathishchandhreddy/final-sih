@@ -242,11 +242,11 @@ export const LiveFaceVerificationModal: React.FC<LiveFaceVerificationModalProps>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                  Live Face Identity Verification
+                  LIVE FACE IDENTITY VERIFICATION
                 </h2>
               </div>
               <p className="text-[11px] text-slate-500">
-                OIML R 76-1:2006 Field Officer Real-Time Biometric Confirmation
+                Verify the field officer using the live physical webcam and enrolled biometric reference.
               </p>
             </div>
           </div>
@@ -531,7 +531,7 @@ export const LiveFaceVerificationModal: React.FC<LiveFaceVerificationModalProps>
                       BIOMETRIC IDENTITY VERIFIED
                     </h3>
                     <p className="text-xs text-emerald-800">
-                      Live physical webcam face matched against enrolled officer template.
+                      Live facial features matched against the authorized officer profile.
                     </p>
                   </div>
                 </div>
@@ -582,7 +582,7 @@ export const LiveFaceVerificationModal: React.FC<LiveFaceVerificationModalProps>
           <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 text-[11px] text-slate-600 leading-relaxed flex items-start gap-2">
             <Lock className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
             <div>
-              <strong>Biometric Authentication:</strong> Facial biometric comparison is strictly computed in real time from live camera frames to authenticate the legal metrology officer.
+              <strong>Officer Identity Confirmation:</strong> Facial biometric comparison is computed in real time from live camera frames to confirm the inspecting officer identity.
             </div>
           </div>
         </div>
