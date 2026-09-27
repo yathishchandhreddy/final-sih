@@ -48,18 +48,7 @@ export const UsersManagement: React.FC = () => {
     setFormSuccess(null);
 
     try {
-      await fetch('/api/auth/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('nawi_jwt_token')}`,
-        },
-        body: JSON.stringify(formData),
-      }).then(async (res) => {
-        const d = await res.json();
-        if (!res.ok) throw new Error(d.error || 'Failed to create user');
-        return d;
-      });
+      await api.createUser(formData);
 
       setFormSuccess(`User ${formData.full_name} (${formData.email}) created successfully.`);
       setFormData({
