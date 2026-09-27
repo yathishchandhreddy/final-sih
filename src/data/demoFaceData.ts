@@ -27,6 +27,36 @@ class DemoFaceDataStore {
 
   constructor() {
     this.initDefaultDemoTemplates();
+    this.loadFromLocalStorage();
+  }
+
+  private loadFromLocalStorage() {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    try {
+      const storedTmpls = localStorage.getItem('nawi_face_templates');
+      if (storedTmpls) {
+        const parsed: StaffFaceTemplate[] = JSON.parse(storedTmpls);
+        parsed.forEach((t) => this.templates.set(t.user_id, t));
+      }
+      const storedVerifs = localStorage.getItem('nawi_face_verifications');
+      if (storedVerifs) {
+        const parsedV: FaceVerificationRecord[] = JSON.parse(storedVerifs);
+        this.verifications = [...parsedV, ...this.verifications];
+      }
+    } catch (e) {
+      console.warn('Could not read face biometrics from localStorage:', e);
+    }
+  }
+
+  private saveToLocalStorage() {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    try {
+      const tmplArr = Array.from(this.templates.values());
+      localStorage.setItem('nawi_face_templates', JSON.stringify(tmplArr));
+      localStorage.setItem('nawi_face_verifications', JSON.stringify(this.verifications.slice(0, 30)));
+    } catch (e) {
+      console.warn('Could not save face biometrics to localStorage:', e);
+    }
   }
 
   /**
@@ -184,6 +214,7 @@ class DemoFaceDataStore {
 
   public saveStaffTemplate(template: StaffFaceTemplate): void {
     this.templates.set(template.user_id, template);
+    this.saveToLocalStorage();
     this.recordEvent({
       id: `evt-${Date.now()}`,
       timestamp: new Date().toISOString(),
@@ -196,12 +227,15 @@ class DemoFaceDataStore {
   }
 
   public deleteStaffTemplate(userId: string): boolean {
-    return this.templates.delete(userId);
+    const res = this.templates.delete(userId);
+    this.saveToLocalStorage();
+    return res;
   }
 
   // ---------------- VERIFICATIONS ----------------
   public recordVerification(record: FaceVerificationRecord): void {
     this.verifications.unshift(record);
+    this.saveToLocalStorage();
 
     this.recordEvent({
       id: `evt-${Date.now()}`,
