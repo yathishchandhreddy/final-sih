@@ -111,10 +111,19 @@ export async function verifySupabaseToken(token: string): Promise<SupabaseUserPr
       .map((r: any) => r.roles?.name)
       .filter(Boolean);
 
+    const emailLower = (authUser.email || '').toLowerCase();
+    let emailInferredRole: string | null = null;
+    if (emailLower.includes('admin')) emailInferredRole = 'ADMIN';
+    else if (emailLower.includes('inspector')) emailInferredRole = 'INSPECTOR';
+    else if (emailLower.includes('tester') || emailLower.includes('subinspector')) emailInferredRole = 'TESTER';
+    else if (emailLower.includes('engineer')) emailInferredRole = 'ENGINEER';
+    else if (emailLower.includes('owner') || emailLower.includes('applicant')) emailInferredRole = 'OWNER';
+
     const rawRole =
       profile?.role ||
       dbRoles[0] ||
       (authUser.user_metadata?.role as string) ||
+      emailInferredRole ||
       'OWNER';
 
     const canonicalRole = normalizeCanonicalRole(rawRole);

@@ -94,12 +94,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 export const api = {
   // Auth
   getCurrentUser: async (): Promise<{ user: User }> => {
-    try {
-      return await request<{ user: User }>('/api/auth/me');
-    } catch {
-      // Fallback to active demo session user
-      return { user: DEMO_USERS[0] };
-    }
+    return request<{ user: User }>('/api/auth/me');
   },
 
   demoLogin: async (role: string): Promise<{

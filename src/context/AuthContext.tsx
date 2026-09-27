@@ -94,10 +94,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     // 3. Resolve user profile attributes
+    const emailLower = (authUser.email || '').toLowerCase();
+    let emailInferredRole: RoleName | null = null;
+    if (emailLower.includes('admin')) emailInferredRole = 'ADMIN';
+    else if (emailLower.includes('inspector')) emailInferredRole = 'INSPECTOR';
+    else if (emailLower.includes('tester') || emailLower.includes('subinspector')) emailInferredRole = 'TESTER';
+    else if (emailLower.includes('engineer')) emailInferredRole = 'ENGINEER';
+    else if (emailLower.includes('owner') || emailLower.includes('applicant')) emailInferredRole = 'OWNER';
+
     const rawRole =
-      backendUser?.role ||
+      (backendUser && (backendUser.id === authUser.id || backendUser.email === authUser.email) ? backendUser.role : null) ||
       dbProfile?.role ||
       authUser.user_metadata?.role ||
+      emailInferredRole ||
       'OWNER';
 
     const canonicalRole = normalizeCanonicalRole(rawRole);
@@ -266,6 +275,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const demoProfile = DEMO_CREDENTIALS[canonicalRole] || DEMO_CREDENTIALS.ADMIN;
     const DEMO_PRESENTATION_PASSWORD = 'NawiDemo2026!Presentation';
+
+    // 0. Cleanly reset any existing session to prevent cross-account pollution
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // Non-fatal
+    }
+    clearSupabaseSessionToken();
 
     // 1. Try server-side API demo login first
     try {
