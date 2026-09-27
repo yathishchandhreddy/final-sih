@@ -312,6 +312,7 @@ export interface StaffFaceTemplate {
   enrolled_at: string;
   demo_mode: boolean;
   device_info?: string;
+  photo_data?: string;
 }
 
 export interface FaceVerificationRecord {
@@ -328,6 +329,7 @@ export interface FaceVerificationRecord {
   timestamp: string;
   attempt_number: number;
   demo_mode: boolean;
+  photo_data?: string;
 }
 
 export type EvidenceCategory =

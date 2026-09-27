@@ -131,11 +131,21 @@ export const StaffIdentityPage: React.FC<StaffIdentityPageProps> = ({ initialOpe
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white shadow-xs ${
-                  template ? 'bg-emerald-600' : 'bg-amber-500'
-                }`}>
-                  {template ? <UserCheck className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
-                </div>
+                {template?.photo_data ? (
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-emerald-500 shadow-sm shrink-0">
+                    <img
+                      src={template.photo_data}
+                      alt="Enrolled Face"
+                      className="w-full h-full object-cover -scale-x-100"
+                    />
+                  </div>
+                ) : (
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white shadow-xs ${
+                    template ? 'bg-emerald-600' : 'bg-amber-500'
+                  }`}>
+                    {template ? <UserCheck className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+                  </div>
+                )}
                 <div>
                   <div className="flex items-center gap-2">
                     <h2 className="text-base font-bold text-slate-900">
